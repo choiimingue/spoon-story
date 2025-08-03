@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String
+  name          String
+  role          Role           @default(LISTENER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  series        Series[]
+  playlists     Playlist[]
+  listeningHistory ListeningHistory[]
+  likes         Like[]
+}
+
+enum Role {
+  LISTENER
+  CREATOR
+}
+
+model Series {
+  id            String         @id @default(cuid())
+  title         String
+  description   String
+  thumbnail     String?
+  creatorId     String
+  creator       User           @relation(fields: [creatorId], references: [id])
+  episodes      Episode[]
+  genre         String
+  isCompleted   Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  likes         Like[]
+}
+
+model Episode {
+  id            String         @id @default(cuid())
+  title         String
+  description   String?
+  audioUrl      String
+  duration      Int            // in seconds
+  episodeNumber Int
+  seriesId      String
+  series        Series         @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  listeningHistory ListeningHistory[]
+}
+
+model Playlist {
+  id            String         @id @default(cuid())
+  name          String
+  userId        String
+  user          User           @relation(fields: [userId], references: [id])
+  episodes      PlaylistEpisode[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model PlaylistEpisode {
+  id            String         @id @default(cuid())
+  playlistId    String
+  playlist      Playlist       @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  episodeId     String
+  order         Int
+  createdAt     DateTime       @default(now())
+}
+
+model ListeningHistory {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episodeId     String
+  episode       Episode        @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  progress      Int            @default(0) // in seconds
+  completed     Boolean        @default(false)
+  lastPlayedAt  DateTime       @default(now())
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([userId, episodeId])
+}
+
+model Like {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seriesId      String
+  series        Series         @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+
+  @@unique([userId, seriesId])
+}
