@@ -1,57 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
 import { hashPassword, generateToken } from '@/app/lib/auth'
-import { validateEmail, validatePassword, sanitizeInput, checkRateLimit, getClientIp } from '@/app/lib/security'
+import { validateEmail, validatePassword, sanitizeInput } from '@/app/lib/security'
 import { ApiResponse } from '@/app/types'
+import { withApiHandler, ApiError, validateRequiredFields } from '@/app/lib/api-errors'
 
 export async function POST(request: NextRequest) {
-  try {
-    // Rate limiting
-    const clientIp = getClientIp(request)
-    if (!checkRateLimit(clientIp)) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Too many requests. Please try again later.'
-      }, { status: 429 })
-    }
-
-    const body = await request.json()
+  return withApiHandler(request, async (req) => {
+    const body = await req.json()
     const { email, password, name, role = 'LISTENER' } = body
 
-    if (!email || !password || !name) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Missing required fields'
-      }, { status: 400 })
-    }
+    // Validate required fields
+    validateRequiredFields(body, ['email', 'password', 'name'])
 
     // Input validation
     if (!validateEmail(email)) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Invalid email format'
-      }, { status: 400 })
+      throw new ApiError(400, 'Invalid email format')
     }
 
     const passwordValidation = validatePassword(password)
     if (!passwordValidation.valid) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: passwordValidation.message
-      }, { status: 400 })
+      throw new ApiError(400, passwordValidation.message!)
     }
 
     const sanitizedName = sanitizeInput(name)
 
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email: email.toLowerCase().trim() }
     })
 
     if (existingUser) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'User already exists'
-      }, { status: 400 })
+      throw new ApiError(400, 'User already exists')
     }
 
     const hashedPassword = await hashPassword(password)
@@ -79,18 +58,5 @@ export async function POST(request: NextRequest) {
         token
       }
     })
-  } catch (error: any) {
-    // Handle duplicate email error
-    if (error.code === 'P2002') {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Email already exists'
-      }, { status: 400 })
-    }
-    
-    return NextResponse.json<ApiResponse>({
-      success: false,
-      error: 'Registration failed'
-    }, { status: 500 })
-  }
+  })
 }

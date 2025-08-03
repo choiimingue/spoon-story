@@ -18,6 +18,8 @@
     "autoprefixer": "^10.4.14",
     "axios": "^1.11.0",
     "bcryptjs": "^3.0.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "eslint": "^8",
     "eslint-config-next": "14.2.3",
     "jsonwebtoken": "^9.0.2",

@@ -1,36 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
-import { verifyToken } from '@/app/lib/auth'
 import { ApiResponse } from '@/app/types'
+import { withApiHandler, validateRequiredFields } from '@/app/lib/api-errors'
+import { requireAuth } from '@/app/lib/auth-middleware'
 
 export async function POST(request: NextRequest) {
-  try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
+  return withApiHandler(request, async (req) => {
+    const { userId } = await requireAuth(req)
     
-    if (!token) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Unauthorized'
-      }, { status: 401 })
-    }
-
-    const decoded = verifyToken(token)
-    if (!decoded) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Invalid token'
-      }, { status: 401 })
-    }
-
-    const body = await request.json()
+    const body = await req.json()
     const { title, description, genre, thumbnail } = body
-
-    if (!title || !description || !genre) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Missing required fields'
-      }, { status: 400 })
-    }
+    
+    validateRequiredFields(body, ['title', 'description', 'genre'])
 
     const series = await prisma.series.create({
       data: {
@@ -38,7 +19,7 @@ export async function POST(request: NextRequest) {
         description,
         genre,
         thumbnail,
-        creatorId: decoded.userId
+        creatorId: userId
       }
     })
 
@@ -46,18 +27,12 @@ export async function POST(request: NextRequest) {
       success: true,
       data: series
     })
-  } catch (error) {
-    console.error('Series creation error:', error)
-    return NextResponse.json<ApiResponse>({
-      success: false,
-      error: 'Internal server error'
-    }, { status: 500 })
-  }
+  })
 }
 
 export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams
+  return withApiHandler(request, async (req) => {
+    const searchParams = req.nextUrl.searchParams
     const creatorId = searchParams.get('creatorId')
 
     const series = await prisma.series.findMany({
@@ -81,11 +56,5 @@ export async function GET(request: NextRequest) {
       success: true,
       data: series
     })
-  } catch (error) {
-    console.error('Series fetch error:', error)
-    return NextResponse.json<ApiResponse>({
-      success: false,
-      error: 'Internal server error'
-    }, { status: 500 })
-  }
+  })
 }

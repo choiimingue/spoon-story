@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { usePlayer } from '@/app/contexts/PlayerContext'
+import { Button } from '@/app/components/ui/Button'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -51,19 +52,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
               <div className="flex items-center space-x-4">
                 <span className="text-gray-300">Welcome, {user?.name}</span>
                 {user?.role === 'CREATOR' && (
-                  <Link
-                    href="/creator/upload"
-                    className="bg-primary-500 text-white px-4 py-2 rounded-md text-sm hover:bg-primary-600 transition-colors"
-                  >
-                    Create Series
+                  <Link href="/creator/upload">
+                    <Button size="md">Create Series</Button>
                   </Link>
                 )}
-                <button
-                  onClick={logout}
-                  className="text-gray-400 hover:text-gray-200 transition-colors"
-                >
+                <Button onClick={logout} variant="ghost" size="md">
                   Logout
-                </button>
+                </Button>
               </div>
             </div>
           </div>

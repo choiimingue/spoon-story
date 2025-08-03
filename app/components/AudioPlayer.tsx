@@ -44,7 +44,6 @@ export default function AudioPlayer({ audioUrl, title, thumbnail, onProgress, on
           backend: 'WebAudio',
           media: new Audio(),
           barGap: 1,
-          responsive: true,
         })
 
         if (isDestroyed) {
